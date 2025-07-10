@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { MinusSquare, PlusSquare } from 'lucide-react';
 import {
@@ -12,8 +12,6 @@ import {
 import { TreeNode as TNode } from '@/lib/buildTree';
 
 const depthClass = (d: number) => (d === 0 ? 'bg-primary/5 py-2' : '');
-const labelClass = (d: number) =>
-  d === 0 ? 'font-semibold text-base' : 'font-normal text-sm';
 
 type Props = {
   node: TNode;
@@ -21,6 +19,8 @@ type Props = {
   depth?: number;
   signal?: number;
   expand?: boolean;
+  fontFamily: string;
+  fontSize: number;
 };
 
 export default function TreeNode({
@@ -29,6 +29,8 @@ export default function TreeNode({
   depth = 0,
   signal,
   expand,
+  fontFamily,
+  fontSize,
 }: Props) {
   const qc = useQueryClient();
   const hasChildren = node.children.length > 0;
@@ -81,6 +83,13 @@ export default function TreeNode({
     confirm('Delete node and children?') && del.mutate();
   };
 
+  // style for font family and size, applied to node content only
+  const nodeStyle = {
+    fontFamily,
+    fontSize: `${fontSize}px`,
+    transition: 'font-size 0.2s, font-family 0.2s',
+  };
+
   return (
     <li>
       <ContextMenu {...({ open: menuOpen, onOpenChange: setMenuOpen } as any)}>
@@ -95,7 +104,7 @@ export default function TreeNode({
                 cursor-pointer
                 ${depthClass(depth)}
               `}
-              // This will open context menu at mouse position on double click
+              style={nodeStyle}
               onDoubleClick={(e) => {
                 if (e.metaKey || e.ctrlKey) {
                   hasChildren && setOpenBranch(!openBranch);
@@ -128,7 +137,9 @@ export default function TreeNode({
               ) : (
                 <span className="node-spacer" />
               )}
-              <span className={labelClass(depth)}>{node.name}</span>
+              <span className={depth === 0 ? 'font-semibold text-base' : 'font-normal text-sm'}>
+                {node.name}
+              </span>
             </div>
           </div>
         </ContextMenuTrigger>
@@ -159,6 +170,8 @@ export default function TreeNode({
               depth={depth + 1}
               signal={signal}
               expand={expand}
+              fontFamily={fontFamily}
+              fontSize={fontSize}
             />
           ))}
         </ul>
