@@ -66,6 +66,9 @@ export default function TreeView({ projectId }: { projectId: number }) {
   const [fontFamily, setFontFamily] = useState(FONT_FAMILIES[0]);
   const [fontSize, setFontSize] = useState(FONT_SIZES[2]); // 16
 
+  // ---- NEW: selected node state ----
+  const [selectedNodeId, setSelectedNodeId] = useState<number | undefined>(undefined);
+
   const toggleAll = (toExpand: boolean) => {
     setExpand(toExpand);
     setSignal((s) => s + 1); // bump signal so children react
@@ -79,7 +82,7 @@ export default function TreeView({ projectId }: { projectId: number }) {
       </div>
     );
 
-  // Empty state if no nodes -- MODIFIED HERE
+  // Empty state if no nodes
   if (nodes.length === 0)
     return (
       <div className="flex flex-col justify-center items-center w-screen h-screen bg-gray-50 overflow-hidden">
@@ -149,7 +152,7 @@ export default function TreeView({ projectId }: { projectId: number }) {
             <WhatIsWBSButton />
           </div>
           <ul className="wbs">
-            {nodes.map((n) => (
+            {nodes.map((n, idx) => (
               <TreeNode
                 key={n.id}
                 node={n}
@@ -158,6 +161,11 @@ export default function TreeView({ projectId }: { projectId: number }) {
                 expand={expand}
                 fontFamily={fontFamily.value}
                 fontSize={fontSize.value}
+                siblings={nodes}
+                indexInParent={idx}
+                parentNode={null}
+                selectedNodeId={selectedNodeId}
+                setSelectedNodeId={setSelectedNodeId}
               />
             ))}
           </ul>
