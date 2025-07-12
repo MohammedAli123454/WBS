@@ -7,14 +7,16 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  // This is the official Next.js 15+ pattern:
   const id = Number(params.id);
+
   if (!id) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
 
   const project = await db
-  .select()
-  .from(projects)
-  .where(eq(projects.id, id))
-  .then((rows) => rows[0]);
+    .select()
+    .from(projects)
+    .where(eq(projects.id, id))
+    .then((rows) => rows[0]);
 
   if (!project) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
