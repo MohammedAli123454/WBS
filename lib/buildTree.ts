@@ -1,7 +1,7 @@
-import type { SelectResultType } from 'drizzle-orm';
-import { wbsNodes } from '@/db/schema';
 
-export type NodeRow = SelectResultType<typeof wbsNodes>;
+import type { InferSelectModel } from 'drizzle-orm';
+import { wbsNodes } from '@/db/schema';
+export type NodeRow = InferSelectModel<typeof wbsNodes>;
 export type TreeNode = NodeRow & { children: TreeNode[] };
 
 export function buildTree(rows: NodeRow[]): TreeNode[] {

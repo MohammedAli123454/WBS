@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { BarLoader } from 'react-spinners';
 import TreeNode from './TreeNode';
 import { TreeNode as TNode } from '@/lib/buildTree';
 import { Button } from '@/components/ui/button';
 import Select from 'react-select';
+import { WhatIsWBSButton } from './WhatIsWBSButton';
 
 const FONT_FAMILIES = [
   { label: 'Inter', value: 'Inter, sans-serif' },
@@ -29,10 +30,32 @@ const FONT_SIZES = [
 ];
 
 export default function TreeView({ projectId }: { projectId: number }) {
-  const { data = [], isLoading } = useQuery<TNode[]>({
+  // Fetch the tree nodes for the project
+  const { data: nodes = [], isLoading: isNodesLoading } = useQuery<TNode[]>({
     queryKey: ['tree', projectId] as const,
     queryFn: () =>
       fetch(`/api/tree/${projectId}`).then((r) => r.json() as Promise<TNode[]>),
+  });
+
+  // Fetch the project info (name)
+  const { data: project, isLoading: isProjectLoading } = useQuery({
+    queryKey: ['project', projectId],
+    queryFn: () =>
+      fetch(`/api/projects/${projectId}`).then((r) =>
+        r.json() as Promise<{ id: number; name: string }>,
+      ),
+  });
+
+  const qc = useQueryClient();
+
+  // Add Root Node mutation
+  const addRoot = useMutation({
+    mutationFn: async (name: string) =>
+      fetch('/api/nodes', {
+        method: 'POST',
+        body: JSON.stringify({ projectId, parentId: null, name }),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['tree', projectId] }),
   });
 
   // global expand/collapse signal
@@ -48,20 +71,34 @@ export default function TreeView({ projectId }: { projectId: number }) {
     setSignal((s) => s + 1); // bump signal so children react
   };
 
-  if (isLoading)
+  // Top-level loading states for project and nodes
+  if (isNodesLoading || isProjectLoading)
     return (
       <div className="flex justify-center items-center w-screen h-screen bg-gray-50 overflow-hidden">
         <BarLoader width={120} height={6} color="#2563eb" />
       </div>
     );
 
-  if (data.length === 0)
+  // Empty state if no nodes -- MODIFIED HERE
+  if (nodes.length === 0)
     return (
-      <div className="flex justify-center items-center w-screen h-screen bg-gray-50 overflow-hidden">
-        <p className="text-muted-foreground">No WBS nodes yet.</p>
+      <div className="flex flex-col justify-center items-center w-screen h-screen bg-gray-50 overflow-hidden">
+        <div>
+          <p className="text-muted-foreground mb-4">No WBS nodes yet.</p>
+          <Button
+            onClick={() => {
+              const name = prompt('Enter root node name');
+              if (name) addRoot.mutate(name);
+            }}
+            disabled={addRoot.isPending}
+          >
+            ➕ Add Root Node
+          </Button>
+        </div>
       </div>
     );
 
+  // Main TreeView display
   return (
     <div className="w-screen h-screen bg-gray-50 flex flex-row justify-between items-stretch box-border gap-6 overflow-hidden">
       {/* Left panel: 30% */}
@@ -106,9 +143,13 @@ export default function TreeView({ projectId }: { projectId: number }) {
 
       {/* Right panel: 70% */}
       <div className="rounded-2xl shadow-lg bg-white p-6 w-[70vw] h-full flex flex-col">
+        {/* Node list area with scroll */}
         <div className="flex-1 h-0 overflow-auto">
+          <div className="mb-4">
+            <WhatIsWBSButton />
+          </div>
           <ul className="wbs">
-            {data.map((n) => (
+            {nodes.map((n) => (
               <TreeNode
                 key={n.id}
                 node={n}
