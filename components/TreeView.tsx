@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { BarLoader } from 'react-spinners';
 import TreeNode from './TreeNode';
+// Removed dnd-kit drag-and-drop imports
 import { TreeNode as TNode } from '@/lib/buildTree';
 import { Button } from '@/components/ui/button';
 import Select from 'react-select';
@@ -37,6 +38,11 @@ export default function TreeView({ projectId }: { projectId: number }) {
       fetch(`/api/tree/${projectId}`).then((r) => r.json() as Promise<TNode[]>),
   });
 
+  // Local state for optimistic UI
+  const [localNodes, setLocalNodes] = useState<TNode[]>(nodes);
+  // Sync localNodes with backend nodes when data changes
+  useEffect(() => { setLocalNodes(nodes); }, [nodes]);
+
   // Fetch the project info (name)
   const { data: project, isLoading: isProjectLoading } = useQuery({
     queryKey: ['project', projectId],
@@ -68,6 +74,9 @@ export default function TreeView({ projectId }: { projectId: number }) {
 
   // ---- NEW: selected node state ----
   const [selectedNodeId, setSelectedNodeId] = useState<number | undefined>(undefined);
+
+  // Drag-and-drop reorder logic removed
+
 
   const toggleAll = (toExpand: boolean) => {
     setExpand(toExpand);
@@ -152,7 +161,7 @@ export default function TreeView({ projectId }: { projectId: number }) {
             <WhatIsWBSButton />
           </div>
           <ul className="wbs">
-            {nodes.map((n, idx) => (
+            {localNodes.map((n, idx) => (
               <TreeNode
                 key={n.id}
                 node={n}
@@ -161,7 +170,7 @@ export default function TreeView({ projectId }: { projectId: number }) {
                 expand={expand}
                 fontFamily={fontFamily.value}
                 fontSize={fontSize.value}
-                siblings={nodes}
+                siblings={localNodes}
                 indexInParent={idx}
                 parentNode={null}
                 selectedNodeId={selectedNodeId}

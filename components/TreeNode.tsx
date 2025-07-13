@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+// Removed dnd-kit drag-and-drop imports
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   MinusSquare, PlusSquare, Plus, Edit2, Trash2,
@@ -31,6 +32,8 @@ type Props = {
   setSelectedNodeId?: (id: number) => void;
 };
 
+// NOTE: The parent component rendering the root <ul> of the tree should wrap it with <DndContext> and <SortableContext> from @dnd-kit/core for full tree drag-and-drop. Here, we handle per-node drag/drop logic for reordering among siblings only.
+
 export default function TreeNode({
   node,
   projectId,
@@ -45,6 +48,9 @@ export default function TreeNode({
   selectedNodeId,
   setSelectedNodeId,
 }: Props) {
+  // Drag-and-drop functionality removed
+  // Drag style removed
+
   const qc = useQueryClient();
   const hasChildren = node.children.length > 0;
   const [openBranch, setOpenBranch] = useState(true);
@@ -208,6 +214,7 @@ export default function TreeNode({
           <span className="node-spacer w-4 h-4" />
         )}
 
+        {/* Drag handle removed */}
         {/* Node label */}
         <span
           className={`
@@ -379,8 +386,8 @@ export default function TreeNode({
         </div>
       </div>
       {openBranch && hasChildren && (
-        <ul className="child-ul">
-          {node.children.map((c: TNode, idx: number) => (
+        <ul className="wbs">
+          {node.children.map((c, idx) => (
             <TreeNode
               key={c.id}
               node={c}
