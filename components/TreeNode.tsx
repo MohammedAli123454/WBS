@@ -110,12 +110,11 @@ export default function TreeNode({
   // Move Up / Down
   const moveNode = async (fromIdx: number, toIdx: number) => {
     if (toIdx < 0 || toIdx >= siblings.length) return;
-    await fetch('/api/nodes/move', {
+    await fetch('/api/nodemovement/moveupanddown', {
       method: 'POST',
       body: JSON.stringify({
         nodeId: siblings[fromIdx].id,
         targetIdx: toIdx,
-        parentId: parentNode ? parentNode.id : null,
       }),
       headers: { 'Content-Type': 'application/json' },
     });
@@ -125,7 +124,7 @@ export default function TreeNode({
   // Move Right (Indent)
   const indentNode = async () => {
     if (indexInParent === 0) return;
-    await fetch('/api/nodes/indent', {
+    await fetch('/api/nodemovement/moveright', {
       method: 'POST',
       body: JSON.stringify({
         nodeId: node.id,
@@ -139,7 +138,7 @@ export default function TreeNode({
   // Move Left (Outdent)
   const outdentNode = async () => {
     if (!parentNode || parentNode.parentId == null) return;
-    await fetch('/api/nodes/outdent', {
+    await fetch('/api/nodemovement/moveleft', {
       method: 'POST',
       body: JSON.stringify({
         nodeId: node.id,
@@ -231,7 +230,7 @@ export default function TreeNode({
           <button
             title="Outdent (move left)"
             className="p-1 rounded hover:bg-slate-200"
-            onClick={() => moveWithAnim(outdentNode, 'left')}
+            onClick={() => { console.log('Move Left clicked', node.id); moveWithAnim(outdentNode, 'left'); }}
             disabled={!canOutdent || isDialogLoader || isDeleteLoader}
           >
             <ArrowLeft className="w-4 h-4" />
@@ -240,7 +239,7 @@ export default function TreeNode({
           <button
             title="Indent (move right)"
             className="p-1 rounded hover:bg-slate-200"
-            onClick={() => moveWithAnim(indentNode, 'right')}
+            onClick={() => { console.log('Move Right clicked', node.id); moveWithAnim(indentNode, 'right'); }}
             disabled={!canIndent || isDialogLoader || isDeleteLoader}
           >
             <ArrowRight className="w-4 h-4" />
@@ -249,7 +248,7 @@ export default function TreeNode({
           <button
             title="Move Up"
             className="p-1 rounded hover:bg-slate-200"
-            onClick={() => moveWithAnim(() => moveNode(indexInParent, indexInParent - 1), 'up')}
+            onClick={() => { console.log('Move Up clicked', node.id, indexInParent); moveWithAnim(() => moveNode(indexInParent, indexInParent - 1), 'up'); }}
             disabled={!canMoveUp || isDialogLoader || isDeleteLoader}
           >
             <ArrowUp className="w-4 h-4" />
@@ -258,7 +257,7 @@ export default function TreeNode({
           <button
             title="Move Down"
             className="p-1 rounded hover:bg-slate-200"
-            onClick={() => moveWithAnim(() => moveNode(indexInParent, indexInParent + 1), 'down')}
+            onClick={() => { console.log('Move Down clicked', node.id, indexInParent); moveWithAnim(() => moveNode(indexInParent, indexInParent + 1), 'down'); }}
             disabled={!canMoveDown || isDialogLoader || isDeleteLoader}
           >
             <ArrowDown className="w-4 h-4" />

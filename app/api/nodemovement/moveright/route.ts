@@ -1,17 +1,14 @@
 // app/api/nodemovement/moveright/route.ts
-import { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/db/drizzle';
 import { wbsNodes } from '@/db/schema';
 import { eq, isNull } from 'drizzle-orm';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') return res.status(405).end();
-
-  const { nodeId } = JSON.parse(req.body);
+export async function POST(req: Request) {
+  const { nodeId } = await req.json();
 
   // Find node
   const node = await db.query.wbsNodes.findFirst({ where: (fields, { eq }) => eq(fields.id, nodeId) });
-  if (!node) return res.status(404).json({ error: 'Node not found' });
+  if (!node) return Response.json({ error: 'Node not found' }, { status: 404 });
 
   // Get siblings under the same parent
   const siblings = await db.query.wbsNodes.findMany({
@@ -21,8 +18,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   });
 
   const idx = siblings.findIndex(n => n.id === nodeId);
-  if (idx === -1) return res.status(400).json({ error: 'Node not found among siblings' });
-  if (idx === 0) return res.status(400).json({ error: 'No left sibling to move under' });
+  if (idx === -1) return Response.json({ error: 'Node not found among siblings' }, { status: 400 });
+  if (idx === 0) return Response.json({ error: 'No left sibling to move under' }, { status: 400 });
 
   const prevSibling = siblings[idx - 1];
 
@@ -37,5 +34,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     .set({ parentId: prevSibling.id, orderIdx: children.length })
     .where(eq(wbsNodes.id, nodeId));
 
-  res.status(200).json({ ok: true });
+  return Response.json({ ok: true });
 }
+
