@@ -162,21 +162,22 @@ export default function TreeView({ projectId }: { projectId: number }) {
           </div>
           <ul className="wbs">
             {localNodes.map((n, idx) => (
-              <TreeNode
-                key={n.id}
-                node={n}
-                projectId={projectId}
-                signal={signal}
-                expand={expand}
-                fontFamily={fontFamily.value}
-                fontSize={fontSize.value}
-                siblings={localNodes}
-                indexInParent={idx}
-                parentNode={null}
-                selectedNodeId={selectedNodeId}
-                setSelectedNodeId={setSelectedNodeId}
-              />
-            ))}
+  <TreeNode
+    key={n.id}
+    node={n}
+    projectId={projectId}
+    signal={signal}
+    expand={expand}
+    fontFamily={fontFamily.value}
+    fontSize={fontSize.value}
+    siblings={localNodes}
+    indexInParent={idx}
+    parentNode={null}
+    selectedNodeId={selectedNodeId}
+    setSelectedNodeId={setSelectedNodeId}
+    setSiblings={setLocalNodes} // pass setter for optimistic update
+  />
+))}
           </ul>
         </div>
       </div>

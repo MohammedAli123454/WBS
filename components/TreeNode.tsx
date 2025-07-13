@@ -30,6 +30,7 @@ type Props = {
   parentNode: TNode | null;
   selectedNodeId?: number;
   setSelectedNodeId?: (id: number) => void;
+  setSiblings?: (nodes: TNode[]) => void; // for optimistic UI
 };
 
 // NOTE: The parent component rendering the root <ul> of the tree should wrap it with <DndContext> and <SortableContext> from @dnd-kit/core for full tree drag-and-drop. Here, we handle per-node drag/drop logic for reordering among siblings only.
@@ -47,6 +48,7 @@ export default function TreeNode({
   parentNode,
   selectedNodeId,
   setSelectedNodeId,
+  setSiblings,
 }: Props) {
   // Drag-and-drop functionality removed
   // Drag style removed
@@ -115,8 +117,17 @@ export default function TreeNode({
 
   // Move Up / Down
   const moveNode = async (fromIdx: number, toIdx: number) => {
-    if (toIdx < 0 || toIdx >= siblings.length) return;
-    await fetch('/api/nodemovement/moveupanddown', {
+  if (toIdx < 0 || toIdx >= siblings.length) return;
+  if (!setSiblings) return; // fallback
+
+  // Optimistic reorder
+  const newSiblings = [...siblings];
+  const [moved] = newSiblings.splice(fromIdx, 1);
+  newSiblings.splice(toIdx, 0, moved);
+  setSiblings(newSiblings);
+
+  try {
+    const res = await fetch('/api/nodemovement/moveupanddown', {
       method: 'POST',
       body: JSON.stringify({
         nodeId: siblings[fromIdx].id,
@@ -124,8 +135,13 @@ export default function TreeNode({
       }),
       headers: { 'Content-Type': 'application/json' },
     });
+    if (!res.ok) throw new Error('Move failed');
+  } catch (err) {
+    // Revert on error
+    setSiblings(siblings);
     invalidate();
-  };
+  }
+};
 
   // Move Right (Indent)
   const indentNode = async () => {
@@ -202,7 +218,7 @@ export default function TreeNode({
             onClick={() => setOpenBranch(!openBranch)}
             tabIndex={-1}
             type="button"
-            disabled={isDialogLoader || isDeleteLoader}
+            disabled={isDialogLoader || isDeleteLoader || (selectedNodeId !== undefined && selectedNodeId !== node.id)}
           >
             {openBranch ? (
               <MinusSquare className="h-4 w-4" strokeWidth={1.5} />
@@ -233,12 +249,15 @@ export default function TreeNode({
 
         {/* Action Icons */}
         <div className="flex gap-1 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          {/* Disable all action buttons if a node is selected and it's not this node.
+              Only enable if no node is selected or this node is the selected one.
+            */}
           {/* Move Left (Outdent) */}
           <button
             title="Outdent (move left)"
             className="p-1 rounded hover:bg-slate-200"
             onClick={() => { console.log('Move Left clicked', node.id); moveWithAnim(outdentNode, 'left'); }}
-            disabled={!canOutdent || isDialogLoader || isDeleteLoader}
+            disabled={!canOutdent || isDialogLoader || isDeleteLoader || (selectedNodeId !== undefined && selectedNodeId !== node.id)}
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
@@ -247,7 +266,7 @@ export default function TreeNode({
             title="Indent (move right)"
             className="p-1 rounded hover:bg-slate-200"
             onClick={() => { console.log('Move Right clicked', node.id); moveWithAnim(indentNode, 'right'); }}
-            disabled={!canIndent || isDialogLoader || isDeleteLoader}
+            disabled={!canIndent || isDialogLoader || isDeleteLoader || (selectedNodeId !== undefined && selectedNodeId !== node.id)}
           >
             <ArrowRight className="w-4 h-4" />
           </button>
@@ -256,7 +275,7 @@ export default function TreeNode({
             title="Move Up"
             className="p-1 rounded hover:bg-slate-200"
             onClick={() => { console.log('Move Up clicked', node.id, indexInParent); moveWithAnim(() => moveNode(indexInParent, indexInParent - 1), 'up'); }}
-            disabled={!canMoveUp || isDialogLoader || isDeleteLoader}
+            disabled={!canMoveUp || isDialogLoader || isDeleteLoader || (selectedNodeId !== undefined && selectedNodeId !== node.id)}
           >
             <ArrowUp className="w-4 h-4" />
           </button>
@@ -265,7 +284,7 @@ export default function TreeNode({
             title="Move Down"
             className="p-1 rounded hover:bg-slate-200"
             onClick={() => { console.log('Move Down clicked', node.id, indexInParent); moveWithAnim(() => moveNode(indexInParent, indexInParent + 1), 'down'); }}
-            disabled={!canMoveDown || isDialogLoader || isDeleteLoader}
+            disabled={!canMoveDown || isDialogLoader || isDeleteLoader || (selectedNodeId !== undefined && selectedNodeId !== node.id)}
           >
             <ArrowDown className="w-4 h-4" />
           </button>
@@ -278,7 +297,7 @@ export default function TreeNode({
                 className="p-1 rounded hover:bg-blue-100 focus:outline-none"
                 tabIndex={0}
                 type="button"
-                disabled={isDialogLoader || isDeleteLoader}
+                disabled={isDialogLoader || isDeleteLoader || (selectedNodeId !== undefined && selectedNodeId !== node.id)}
               >
                 <Plus className="w-4 h-4 text-blue-600" />
               </button>
@@ -319,7 +338,7 @@ export default function TreeNode({
                 className="p-1 rounded hover:bg-slate-100 focus:outline-none"
                 tabIndex={0}
                 type="button"
-                disabled={isDialogLoader || isDeleteLoader}
+                disabled={isDialogLoader || isDeleteLoader || (selectedNodeId !== undefined && selectedNodeId !== node.id)}
               >
                 <Edit2 className="w-4 h-4 text-slate-600" />
               </button>
@@ -359,7 +378,7 @@ export default function TreeNode({
                 className="p-1 rounded hover:bg-red-100 focus:outline-none flex items-center justify-center"
                 tabIndex={0}
                 type="button"
-                disabled={isDialogLoader || isDeleteLoader}
+                disabled={isDialogLoader || isDeleteLoader || (selectedNodeId !== undefined && selectedNodeId !== node.id)}
               >
                 {isDeleteLoader ? <BeatLoader size={8} color="#e11d48" /> : <Trash2 className="w-4 h-4 text-red-600" />}
               </button>
@@ -388,22 +407,28 @@ export default function TreeNode({
       {openBranch && hasChildren && (
         <ul className="wbs">
           {node.children.map((c, idx) => (
-            <TreeNode
-              key={c.id}
-              node={c}
-              projectId={projectId}
-              depth={depth + 1}
-              signal={signal}
-              expand={expand}
-              fontFamily={fontFamily}
-              fontSize={fontSize}
-              siblings={node.children}
-              indexInParent={idx}
-              parentNode={node}
-              selectedNodeId={selectedNodeId}
-              setSelectedNodeId={setSelectedNodeId}
-            />
-          ))}
+  <TreeNode
+    key={c.id}
+    node={c}
+    projectId={projectId}
+    depth={depth + 1}
+    signal={signal}
+    expand={expand}
+    fontFamily={fontFamily}
+    fontSize={fontSize}
+    siblings={node.children}
+    indexInParent={idx}
+    parentNode={node}
+    selectedNodeId={selectedNodeId}
+    setSelectedNodeId={setSelectedNodeId}
+    setSiblings={newChildren => {
+      if (!setSiblings) return;
+      const newSiblings = [...siblings];
+      newSiblings[indexInParent] = { ...node, children: newChildren };
+      setSiblings(newSiblings);
+    }}
+  />
+))}
         </ul>
       )}
     </li>
