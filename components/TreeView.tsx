@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { BarLoader } from 'react-spinners';
 import TreeNode from './TreeNode';
-// Removed dnd-kit drag-and-drop imports
 import { TreeNode as TNode } from '@/lib/buildTree';
 import { Button } from '@/components/ui/button';
 import Select from 'react-select';
@@ -31,6 +30,8 @@ const FONT_SIZES = [
 ];
 
 export default function TreeView({ projectId }: { projectId: number }) {
+  // --- CUT/PASTE STATE ---
+  const [cutNode, setCutNode] = useState<{ id: number; parentId: number | null } | null>(null);
   // Fetch the tree nodes for the project
   const { data: nodes = [], isLoading: isNodesLoading } = useQuery<TNode[]>({
     queryKey: ['tree', projectId] as const,
@@ -40,7 +41,6 @@ export default function TreeView({ projectId }: { projectId: number }) {
 
   // Local state for optimistic UI
   const [localNodes, setLocalNodes] = useState<TNode[]>(nodes);
-  // Sync localNodes with backend nodes when data changes
   useEffect(() => { setLocalNodes(nodes); }, [nodes]);
 
   // Fetch the project info (name)
@@ -75,12 +75,18 @@ export default function TreeView({ projectId }: { projectId: number }) {
   // ---- NEW: selected node state ----
   const [selectedNodeId, setSelectedNodeId] = useState<number | undefined>(undefined);
 
-  // Drag-and-drop reorder logic removed
+  // ---- NEW: renderSignal ----
+  const [renderSignal, setRenderSignal] = useState(0);
 
+  // Enhanced setSiblings to always bump renderSignal
+  const handleSetSiblings = useCallback((newSiblings: TNode[]) => {
+    setLocalNodes(newSiblings);
+    setRenderSignal(s => s + 1);
+  }, []);
 
   const toggleAll = (toExpand: boolean) => {
     setExpand(toExpand);
-    setSignal((s) => s + 1); // bump signal so children react
+    setSignal((s) => s + 1);
   };
 
   // Top-level loading states for project and nodes
@@ -162,22 +168,23 @@ export default function TreeView({ projectId }: { projectId: number }) {
           </div>
           <ul className="wbs">
             {localNodes.map((n, idx) => (
-  <TreeNode
-    key={n.id}
-    node={n}
-    projectId={projectId}
-    signal={signal}
-    expand={expand}
-    fontFamily={fontFamily.value}
-    fontSize={fontSize.value}
-    siblings={localNodes}
-    indexInParent={idx}
-    parentNode={null}
-    selectedNodeId={selectedNodeId}
-    setSelectedNodeId={setSelectedNodeId}
-    setSiblings={setLocalNodes} // pass setter for optimistic update
-  />
-))}
+              <TreeNode
+                key={n.id + ':' + renderSignal} // CRITICAL: remounts on any move
+                node={n}
+                projectId={projectId}
+                signal={signal}
+                expand={expand}
+                fontFamily={fontFamily.value}
+                fontSize={fontSize.value}
+                siblings={localNodes}
+                indexInParent={idx}
+                parentNode={null}
+                selectedNodeId={selectedNodeId}
+                setSelectedNodeId={setSelectedNodeId}
+                setSiblings={handleSetSiblings}
+                renderSignal={renderSignal}
+              />
+            ))}
           </ul>
         </div>
       </div>
