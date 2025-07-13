@@ -117,31 +117,31 @@ export default function TreeNode({
 
   // Move Up / Down
   const moveNode = async (fromIdx: number, toIdx: number) => {
-  if (toIdx < 0 || toIdx >= siblings.length) return;
-  if (!setSiblings) return; // fallback
+    if (toIdx < 0 || toIdx >= siblings.length) return;
+    if (!setSiblings) return; // fallback
 
-  // Optimistic reorder
-  const newSiblings = [...siblings];
-  const [moved] = newSiblings.splice(fromIdx, 1);
-  newSiblings.splice(toIdx, 0, moved);
-  setSiblings(newSiblings);
+    // Optimistic reorder
+    const newSiblings = [...siblings];
+    const [moved] = newSiblings.splice(fromIdx, 1);
+    newSiblings.splice(toIdx, 0, moved);
+    setSiblings(newSiblings);
 
-  try {
-    const res = await fetch('/api/nodemovement/moveupanddown', {
-      method: 'POST',
-      body: JSON.stringify({
-        nodeId: siblings[fromIdx].id,
-        targetIdx: toIdx,
-      }),
-      headers: { 'Content-Type': 'application/json' },
-    });
-    if (!res.ok) throw new Error('Move failed');
-  } catch (err) {
-    // Revert on error
-    setSiblings(siblings);
-    invalidate();
-  }
-};
+    try {
+      const res = await fetch('/api/nodemovement/moveupanddown', {
+        method: 'POST',
+        body: JSON.stringify({
+          nodeId: siblings[fromIdx].id,
+          targetIdx: toIdx,
+        }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) throw new Error('Move failed');
+    } catch (err) {
+      // Revert on error
+      setSiblings(siblings);
+      invalidate();
+    }
+  };
 
   // Move Right (Indent)
   const indentNode = async () => {
@@ -185,15 +185,16 @@ export default function TreeNode({
     fontFamily,
     fontSize: `${fontSize}px`,
     transition: 'font-size 0.2s, font-family 0.2s, box-shadow 0.2s, background 0.2s',
-    background: selectedNodeId === node.id ? '#dbeafe' : undefined,
+    background: selectedNodeId === node.id ? '#e0f2fe' : undefined, // lighter blue
+    color: selectedNodeId === node.id ? '#0c1e39' : undefined, // dark text on selection
     boxShadow: moveAnim
       ? moveAnim === 'up'
         ? '0 -4px 0 0 #60a5fa inset'
         : moveAnim === 'down'
-        ? '0 4px 0 0 #60a5fa inset'
-        : moveAnim === 'left'
-        ? '-4px 0 0 0 #60a5fa inset'
-        : '4px 0 0 0 #60a5fa inset'
+          ? '0 4px 0 0 #60a5fa inset'
+          : moveAnim === 'left'
+            ? '-4px 0 0 0 #60a5fa inset'
+            : '4px 0 0 0 #60a5fa inset'
       : undefined,
   };
 
@@ -237,9 +238,8 @@ export default function TreeNode({
             select-none truncate
             ${depth === 0 ? 'font-semibold text-base' : 'font-normal text-sm'}
             rounded px-4 py-2 transition-colors cursor-pointer
-            hover:bg-blue-500 hover:text-white
+            ${selectedNodeId === node.id ? 'bg-blue-100 text-blue-900 ring-2 ring-blue-400' : 'hover:bg-blue-500 hover:text-white'}
             ${depthClass(depth)}
-            ${selectedNodeId === node.id ? 'ring-2 ring-blue-400' : ''}
           `}
           style={nodeStyle}
           onClick={handleNodeClick}
@@ -248,7 +248,7 @@ export default function TreeNode({
         </span>
 
         {/* Action Icons */}
-        <div className="flex gap-1 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className={`flex gap-1 ml-2 transition-opacity ${selectedNodeId === node.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
           {/* Disable all action buttons if a node is selected and it's not this node.
               Only enable if no node is selected or this node is the selected one.
             */}
@@ -407,28 +407,28 @@ export default function TreeNode({
       {openBranch && hasChildren && (
         <ul className="wbs">
           {node.children.map((c, idx) => (
-  <TreeNode
-    key={c.id}
-    node={c}
-    projectId={projectId}
-    depth={depth + 1}
-    signal={signal}
-    expand={expand}
-    fontFamily={fontFamily}
-    fontSize={fontSize}
-    siblings={node.children}
-    indexInParent={idx}
-    parentNode={node}
-    selectedNodeId={selectedNodeId}
-    setSelectedNodeId={setSelectedNodeId}
-    setSiblings={newChildren => {
-      if (!setSiblings) return;
-      const newSiblings = [...siblings];
-      newSiblings[indexInParent] = { ...node, children: newChildren };
-      setSiblings(newSiblings);
-    }}
-  />
-))}
+            <TreeNode
+              key={c.id}
+              node={c}
+              projectId={projectId}
+              depth={depth + 1}
+              signal={signal}
+              expand={expand}
+              fontFamily={fontFamily}
+              fontSize={fontSize}
+              siblings={node.children}
+              indexInParent={idx}
+              parentNode={node}
+              selectedNodeId={selectedNodeId}
+              setSelectedNodeId={setSelectedNodeId}
+              setSiblings={newChildren => {
+                if (!setSiblings) return;
+                const newSiblings = [...siblings];
+                newSiblings[indexInParent] = { ...node, children: newChildren };
+                setSiblings(newSiblings);
+              }}
+            />
+          ))}
         </ul>
       )}
     </li>
