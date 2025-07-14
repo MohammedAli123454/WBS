@@ -10,7 +10,7 @@ import Select from 'react-select';
 import { WhatIsWBSButton } from './WhatIsWBSButton';
 
 const FONT_FAMILIES = [
-  { label: 'Inter', value: 'Inter, sans-serif' },
+  { label: 'Inter', value: 'Inter, sans-serif' }, 
   { label: 'Verdana', value: 'Verdana, Geneva, sans-serif' },
   { label: 'Arial', value: 'Arial, sans-serif' },
   { label: 'Times New Roman', value: '"Times New Roman", serif' },

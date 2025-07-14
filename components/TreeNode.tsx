@@ -197,6 +197,7 @@ export default function TreeNode({
             ? '-4px 0 0 0 #60a5fa inset'
             : '4px 0 0 0 #60a5fa inset'
       : undefined,
+    marginLeft: `${depth * 24}px`, // <-- Add indentation here!
   };
 
   // Select this node
@@ -233,7 +234,7 @@ export default function TreeNode({
           <span className="node-spacer w-4 h-4" />
         )}
 
-        {/* Node label */}
+        {/* Node label with INDENTATION */}
         <span
           className={`
             select-none truncate
