@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { BarLoader } from 'react-spinners';
 import TreeNode from './TreeNode';
@@ -30,20 +30,16 @@ const FONT_SIZES = [
 ];
 
 export default function TreeView({ projectId }: { projectId: number }) {
-  // --- CUT/PASTE STATE ---
   const [cutNode, setCutNode] = useState<{ id: number; parentId: number | null } | null>(null);
-  // Fetch the tree nodes for the project
   const { data: nodes = [], isLoading: isNodesLoading } = useQuery<TNode[]>({
     queryKey: ['tree', projectId] as const,
     queryFn: () =>
       fetch(`/api/tree/${projectId}`).then((r) => r.json() as Promise<TNode[]>),
   });
 
-  // Local state for optimistic UI
   const [localNodes, setLocalNodes] = useState<TNode[]>(nodes);
   useEffect(() => { setLocalNodes(nodes); }, [nodes]);
 
-  // Fetch the project info (name)
   const { data: project, isLoading: isProjectLoading } = useQuery({
     queryKey: ['project', projectId],
     queryFn: () =>
@@ -54,7 +50,6 @@ export default function TreeView({ projectId }: { projectId: number }) {
 
   const qc = useQueryClient();
 
-  // Add Root Node mutation
   const addRoot = useMutation({
     mutationFn: async (name: string) =>
       fetch('/api/nodes', {
@@ -64,21 +59,15 @@ export default function TreeView({ projectId }: { projectId: number }) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tree', projectId] }),
   });
 
-  // global expand/collapse signal
   const [signal, setSignal] = useState(0);
   const [expand, setExpand] = useState<boolean>(true);
 
-  // font controls
   const [fontFamily, setFontFamily] = useState(FONT_FAMILIES[0]);
   const [fontSize, setFontSize] = useState(FONT_SIZES[2]); // 16
 
-  // ---- NEW: selected node state ----
   const [selectedNodeId, setSelectedNodeId] = useState<number | undefined>(undefined);
-
-  // ---- NEW: renderSignal ----
   const [renderSignal, setRenderSignal] = useState(0);
 
-  // Enhanced setSiblings to always bump renderSignal
   const handleSetSiblings = useCallback((newSiblings: TNode[]) => {
     setLocalNodes(newSiblings);
     setRenderSignal(s => s + 1);
@@ -89,7 +78,22 @@ export default function TreeView({ projectId }: { projectId: number }) {
     setSignal((s) => s + 1);
   };
 
-  // Top-level loading states for project and nodes
+  // === Deselect on click outside ===
+  const treeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (
+        treeRef.current &&
+        !treeRef.current.contains(e.target as Node)
+      ) {
+        setSelectedNodeId(undefined);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
   if (isNodesLoading || isProjectLoading)
     return (
       <div className="flex justify-center items-center w-screen h-screen bg-gray-50 overflow-hidden">
@@ -97,7 +101,6 @@ export default function TreeView({ projectId }: { projectId: number }) {
       </div>
     );
 
-  // Empty state if no nodes
   if (nodes.length === 0)
     return (
       <div className="flex flex-col justify-center items-center w-screen h-screen bg-gray-50 overflow-hidden">
@@ -116,7 +119,6 @@ export default function TreeView({ projectId }: { projectId: number }) {
       </div>
     );
 
-  // Main TreeView display
   return (
     <div className="w-screen h-screen bg-gray-50 flex flex-row justify-between items-stretch box-border gap-6 overflow-hidden">
       {/* Left panel: 30% */}
@@ -160,7 +162,8 @@ export default function TreeView({ projectId }: { projectId: number }) {
       </div>
 
       {/* Right panel: 70% */}
-      <div className="rounded-2xl shadow-lg bg-white p-6 w-[70vw] h-full flex flex-col">
+      {/* Add ref and onClick capture for deselecting */}
+      <div className="rounded-2xl shadow-lg bg-white p-6 w-[70vw] h-full flex flex-col" ref={treeRef}>
         {/* Node list area with scroll */}
         <div className="flex-1 h-0 overflow-auto">
           <div className="mb-4">
@@ -169,7 +172,7 @@ export default function TreeView({ projectId }: { projectId: number }) {
           <ul className="wbs">
             {localNodes.map((n, idx) => (
               <TreeNode
-                key={n.id + ':' + renderSignal} // CRITICAL: remounts on any move
+                key={n.id + ':' + renderSignal}
                 node={n}
                 projectId={projectId}
                 signal={signal}

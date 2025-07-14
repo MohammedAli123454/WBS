@@ -200,7 +200,8 @@ export default function TreeNode({
   };
 
   // Select this node
-  const handleNodeClick = () => {
+  const handleNodeClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent outside click from firing
     setSelectedNodeId?.(node.id);
   };
 
@@ -217,7 +218,7 @@ export default function TreeNode({
           <button
             className="node-toggle"
             aria-label={openBranch ? 'Collapse' : 'Expand'}
-            onClick={() => setOpenBranch(!openBranch)}
+            onClick={e => { e.stopPropagation(); setOpenBranch(!openBranch); }}
             tabIndex={-1}
             type="button"
             disabled={isDialogLoader || isDeleteLoader || (selectedNodeId !== undefined && selectedNodeId !== node.id)}
@@ -238,7 +239,7 @@ export default function TreeNode({
             select-none truncate
             ${depth === 0 ? 'font-semibold text-base' : 'font-normal text-sm'}
             rounded px-4 py-2 transition-colors cursor-pointer
-            ${selectedNodeId === node.id ? 'bg-blue-100 text-blue-900 ring-2 ring-blue-400' : 'hover:bg-blue-500 hover:text-white'}
+            ${selectedNodeId === node.id ? 'bg-blue-100 text-blue-900 ring-2 ring-blue-400' : ''}
             ${depthClass(depth)}
           `}
           style={nodeStyle}
@@ -259,7 +260,7 @@ export default function TreeNode({
           <button
             title="Outdent (move left)"
             className="p-1 rounded hover:bg-slate-200"
-            onClick={() => { moveWithAnim(outdentNode, 'left'); }}
+            onClick={e => { e.stopPropagation(); moveWithAnim(outdentNode, 'left'); }}
             disabled={!canOutdent || isDialogLoader || isDeleteLoader || (selectedNodeId !== undefined && selectedNodeId !== node.id)}
           >
             <ArrowLeft className="w-4 h-4" />
@@ -268,7 +269,7 @@ export default function TreeNode({
           <button
             title="Indent (move right)"
             className="p-1 rounded hover:bg-slate-200"
-            onClick={() => { moveWithAnim(indentNode, 'right'); }}
+            onClick={e => { e.stopPropagation(); moveWithAnim(indentNode, 'right'); }}
             disabled={!canIndent || isDialogLoader || isDeleteLoader || (selectedNodeId !== undefined && selectedNodeId !== node.id)}
           >
             <ArrowRight className="w-4 h-4" />
@@ -277,7 +278,7 @@ export default function TreeNode({
           <button
             title="Move Up"
             className="p-1 rounded hover:bg-slate-200"
-            onClick={() => { moveWithAnim(() => moveNode(indexInParent, indexInParent - 1), 'up'); }}
+            onClick={e => { e.stopPropagation(); moveWithAnim(() => moveNode(indexInParent, indexInParent - 1), 'up'); }}
             disabled={!canMoveUp || isDialogLoader || isDeleteLoader || (selectedNodeId !== undefined && selectedNodeId !== node.id)}
           >
             <ArrowUp className="w-4 h-4" />
@@ -286,7 +287,7 @@ export default function TreeNode({
           <button
             title="Move Down"
             className="p-1 rounded hover:bg-slate-200"
-            onClick={() => { moveWithAnim(() => moveNode(indexInParent, indexInParent + 1), 'down'); }}
+            onClick={e => { e.stopPropagation(); moveWithAnim(() => moveNode(indexInParent, indexInParent + 1), 'down'); }}
             disabled={!canMoveDown || isDialogLoader || isDeleteLoader || (selectedNodeId !== undefined && selectedNodeId !== node.id)}
           >
             <ArrowDown className="w-4 h-4" />
@@ -295,7 +296,7 @@ export default function TreeNode({
           <Dialog open={dialogType === 'add'} onOpenChange={v => { if (!v) setDialogType(null); }}>
             <DialogTrigger asChild>
               <button
-                onClick={() => { setInputValue(''); setDialogType('add'); }}
+                onClick={e => { e.stopPropagation(); setInputValue(''); setDialogType('add'); }}
                 title="Add Subtask"
                 className="p-1 rounded hover:bg-blue-100 focus:outline-none"
                 tabIndex={0}
@@ -336,7 +337,7 @@ export default function TreeNode({
           <Dialog open={dialogType === 'edit'} onOpenChange={v => { if (!v) setDialogType(null); }}>
             <DialogTrigger asChild>
               <button
-                onClick={() => { setInputValue(node.name); setDialogType('edit'); }}
+                onClick={e => { e.stopPropagation(); setInputValue(node.name); setDialogType('edit'); }}
                 title="Edit Task"
                 className="p-1 rounded hover:bg-slate-100 focus:outline-none"
                 tabIndex={0}
@@ -376,7 +377,7 @@ export default function TreeNode({
           <Dialog open={dialogType === 'delete'} onOpenChange={v => { if (!v) setDialogType(null); }}>
             <DialogTrigger asChild>
               <button
-                onClick={() => setDialogType('delete')}
+                onClick={e => { e.stopPropagation(); setDialogType('delete'); }}
                 title="Remove Task"
                 className="p-1 rounded hover:bg-red-100 focus:outline-none flex items-center justify-center"
                 tabIndex={0}
